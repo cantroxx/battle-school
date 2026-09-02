@@ -137,7 +137,7 @@
       const d = pick([5, 7, 8, 9, 10, 12]);
       const a = R(1, d - 2), b = R(1, d - 1 - a);
       const plus = Math.random() < 0.6;
-      const big = a + b, small = Math.min(a, b), diff = Math.abs(a - b) || 1;
+      const big = a + b, small = Math.min(a, b);
       const text = plus ? `${a}/${d} + ${b}/${d} = ?` : `${big}/${d} − ${small}/${d} = ?`;
       const ansN = plus ? a + b : big - small;
       return build('분수', text, `${ansN}/${d}`,

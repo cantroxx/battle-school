@@ -36,6 +36,8 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
   const used = useRef({ small: 0, big: 0 });
   const maxCombo = useRef(0);
   const wrongList = useRef([]); // 오답 복습용: 틀린 문제와 정답
+  const answerRef = useRef(answer);
+  answerRef.current = answer;
 
   const danger = isDangerTurn(qNumber);
 
@@ -48,7 +50,7 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
   useEffect(() => {
     if (phase !== 'ask') return;
     if (timeLeft <= 0) {
-      answer(-1); // 시간 초과는 오답 처리
+      answerRef.current(-1); // 시간 초과는 오답 처리
       return;
     }
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
@@ -86,7 +88,8 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
       setTimeout(() => {
         setMonsterHp(nextHp);
         setFx('p-atk');
-        crit ? sfx.crit() : sfx.hit();
+        if (crit) sfx.crit();
+        else sfx.hit();
         showPopup('monster', `-${dmg}`, crit ? 'crit' : 'dmg');
       }, 250);
 
@@ -126,7 +129,7 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
     }
   }
 
-  function usePotion(kind) {
+  function drinkPotion(kind) {
     if (phase !== 'ask') return;
     if (potions[kind] <= 0 || playerHp >= stats.maxHp) return;
     const heal = POTIONS[kind].heal;
@@ -154,7 +157,8 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
   function end(win) {
     setResult({ win });
     setPhase('end');
-    win ? sfx.victory() : sfx.defeat();
+    if (win) sfx.victory();
+    else sfx.defeat();
   }
 
   function finish(next) {
@@ -246,7 +250,7 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
                 key={kind}
                 className="potion-btn"
                 disabled={phase !== 'ask' || potions[kind] <= 0 || playerHp >= stats.maxHp}
-                onClick={() => usePotion(kind)}
+                onClick={() => drinkPotion(kind)}
               >
                 {p.icon} {p.name} ×{potions[kind]}
               </button>
