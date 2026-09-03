@@ -1,6 +1,6 @@
 import { WEAPONS, ARMORS, POTIONS, statsOf } from '../game/data.js';
 
-/* 상점: 골드로 무기·방어구·물약을 산다. 장비는 사면 바로 장착. */
+/* 상점: 같은 가격의 장비 중 공격·치명타·체력·스킬 충전을 골라 산다. */
 export default function ShopScreen({ player, onBuyWeapon, onBuyArmor, onBuyPotion, onBack }) {
   const stats = statsOf(player);
 
@@ -18,11 +18,13 @@ export default function ShopScreen({ player, onBuyWeapon, onBuyArmor, onBuyPotio
             key={w.id}
             icon={w.icon}
             name={w.name}
-            stat={`공격력 ${w.atk}`}
+            stat={[
+              `공격력 ${w.atk}`,
+              w.crit ? `치명타 +${Math.round(w.crit * 100)}%` : '',
+              w.skillGain ? `충전 +${w.skillGain}` : '',
+            ].filter(Boolean).join(' · ')}
             price={w.price}
-            state={
-              w.id === player.weaponId ? 'equipped' : w.id < player.weaponId ? 'passed' : 'buyable'
-            }
+            state={w.id === player.weaponId ? 'equipped' : player.ownedWeaponIds.includes(w.id) ? 'owned' : 'buyable'}
             canAfford={player.gold >= w.price}
             onBuy={() => onBuyWeapon(w.id)}
           />
@@ -36,11 +38,13 @@ export default function ShopScreen({ player, onBuyWeapon, onBuyArmor, onBuyPotio
             key={a.id}
             icon={a.icon}
             name={a.name}
-            stat={`방어력 ${a.def}`}
+            stat={[
+              `방어력 ${a.def}`,
+              a.hp ? `체력 +${a.hp}` : '',
+              a.skillGain ? `충전 +${a.skillGain}` : '',
+            ].filter(Boolean).join(' · ')}
             price={a.price}
-            state={
-              a.id === player.armorId ? 'equipped' : a.id < player.armorId ? 'passed' : 'buyable'
-            }
+            state={a.id === player.armorId ? 'equipped' : player.ownedArmorIds.includes(a.id) ? 'owned' : 'buyable'}
             canAfford={player.gold >= a.price}
             onBuy={() => onBuyArmor(a.id)}
           />
@@ -75,7 +79,7 @@ function ShopRow({ icon, name, stat, price, state, canAfford, onBuy }) {
         <span className="shop-stat">{stat}</span>
       </span>
       {state === 'equipped' && <span className="shop-tag now">장착 중</span>}
-      {state === 'passed' && <span className="shop-tag">보유</span>}
+      {state === 'owned' && <button className="equip-btn" onClick={onBuy}>장착</button>}
       {state === 'buyable' && (
         <button className="buy-btn" disabled={!canAfford} onClick={onBuy}>
           {canAfford ? `💰 ${price}G` : `${price}G 부족`}

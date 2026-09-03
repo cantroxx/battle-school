@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { statsOf, POTIONS, FINAL_MONSTER_ID, STORY } from '../game/data.js';
+import { answerDamage, monsterDamage, nextGauge, skillDamage, skillText } from '../game/combat.js';
 import { getQuestion } from '../questions/index.js';
 import { sfx } from '../game/sfx.js';
 
@@ -28,6 +29,9 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
   const [timeLeft, setTimeLeft] = useState(TURN_SECONDS);
   const [message, setMessage] = useState('문제를 맞히면 공격 성공!');
   const [combo, setCombo] = useState(0);
+  const [skillGauge, setSkillGauge] = useState(player.skillGauge || 0);
+  const [focused, setFocused] = useState(false);
+  const [guarded, setGuarded] = useState(false);
   const [result, setResult] = useState(null); // { win }
   const [fx, setFx] = useState(''); // 'p-atk'(내가 공격) | 'm-atk'(몬스터가 공격)
   const [popup, setPopup] = useState(null); // { target, text, kind, key }
@@ -40,6 +44,8 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
   answerRef.current = answer;
 
   const danger = isDangerTurn(qNumber);
+  const specialTurn = !!monster.pattern && (qNumber + 1) % monster.pattern.every === 0;
+  const hitsWeakness = player.subject === monster.weakness;
 
   // 강공격 턴이 시작되면 경고음
   useEffect(() => {
@@ -76,15 +82,18 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
       sfx.correct();
       if (c >= 2) sfx.combo(c);
 
-      // 데미지 = (공격력 + 무작위 + 빠르기 보너스) × 콤보 배율 × 오늘의 과목 보너스, 10%로 치명타 2배
-      const speedBonus = timeLeft >= 15 ? 3 : timeLeft >= 10 ? 2 : timeLeft >= 5 ? 1 : 0;
-      const mult = 1 + 0.2 * (Math.min(c, 5) - 1);
-      const crit = Math.random() < 0.1;
-      const dmg =
-        Math.round((stats.atk + rand(3) + speedBonus) * mult * (todayBonus ? 1.5 : 1)) *
-        (crit ? 2 : 1);
+      const crit = focused || Math.random() < stats.crit;
+      const shielded = specialTurn && monster.pattern.type === 'shield' && !focused;
+      const dmg = answerDamage({
+        stats, combo: c, timeLeft, todayBonus, weakness: hitsWeakness,
+        critical: crit, roll: rand(3), shield: shielded,
+      });
+      setFocused(false);
+      setSkillGauge((g) => nextGauge(g, stats.skillGain));
 
-      const nextHp = Math.max(0, monsterHp - dmg);
+      const damagedHp = Math.max(0, monsterHp - dmg);
+      const heals = specialTurn && monster.pattern.type === 'heal' && damagedHp > 0;
+      const nextHp = heals ? Math.min(monster.hp, damagedHp + monster.pattern.value) : damagedHp;
       setTimeout(() => {
         setMonsterHp(nextHp);
         setFx('p-atk');
@@ -96,8 +105,11 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
       const notes = [];
       if (crit) notes.push('💥 치명타!');
       if (c >= 2) notes.push(`🔥 ${c}콤보`);
+      if (hitsWeakness) notes.push('🎯 약점 공격');
+      if (shielded) notes.push(`🪨 ${monster.pattern.name}`);
+      if (heals) notes.push(`💚 ${monster.pattern.name} +${monster.pattern.value}`);
       if (todayBonus) notes.push('⭐ 과목 보너스');
-      else if (speedBonus >= 2) notes.push('⚡ 빠름');
+      else if (timeLeft >= 10) notes.push('⚡ 빠름');
       setMessage(`정답! ⚔️ ${dmg} 데미지! ${notes.join(' ')}`);
       after(1700, () => (nextHp <= 0 ? end(true) : nextTurn()));
     } else {
@@ -110,8 +122,15 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
       setCombo(0);
       sfx.wrong();
       const strong = danger;
-      let dmg = Math.max(1, monster.atk + rand(2) - stats.def);
-      if (strong) dmg *= 2;
+      const specialBonus = specialTurn && monster.pattern.type === 'rage' ? monster.pattern.value : 0;
+      const dmg = monsterDamage({
+        monsterAtk: monster.atk, defense: stats.def, danger: strong,
+        specialBonus, guarded, roll: rand(2),
+      });
+      if (guarded) setGuarded(false);
+      if (specialTurn && monster.pattern.type === 'drain') {
+        setSkillGauge((g) => nextGauge(g, -monster.pattern.value));
+      }
       const nextHp = Math.max(0, playerHp - dmg);
       setTimeout(() => {
         setPlayerHp(nextHp);
@@ -120,11 +139,11 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
         showPopup('player', `-${dmg}`, strong ? 'crit' : 'dmg');
       }, 350);
       const head = idx === -1 ? '시간 초과!' : '아쉬워요!';
-      setMessage(
-        strong
-          ? `${head} ${monster.name}의 강공격!! 💥💥 ${dmg} 데미지`
-          : `${head} ${monster.name}의 반격! 💥 ${dmg} 데미지`,
-      );
+      const patternNote = specialTurn ? ` · ${monster.pattern.name}!` : '';
+      const guardNote = guarded ? ' · 🛡️ 방어 성공!' : '';
+      setMessage(strong
+        ? `${head} ${monster.name}의 강공격!! 💥💥 ${dmg} 데미지${patternNote}${guardNote}`
+        : `${head} ${monster.name}의 반격! 💥 ${dmg} 데미지${patternNote}${guardNote}`);
       after(2300, () => (nextHp <= 0 ? end(false) : nextTurn()));
     }
   }
@@ -138,6 +157,34 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
     setPlayerHp((hp) => Math.min(stats.maxHp, hp + heal));
     sfx.potion();
     showPopup('player', `+${heal}`, 'heal');
+  }
+
+  function useSkill() {
+    if (phase !== 'ask' || skillGauge < 100) return;
+    setSkillGauge(0);
+    sfx.crit();
+    if (player.jobId === 'ranger') {
+      setFocused(true);
+      setMessage('🏹 집중 완료! 다음 정답은 반드시 치명타!');
+      return;
+    }
+    if (player.jobId === 'guardian') {
+      const heal = Math.max(12, Math.round(stats.maxHp * 0.2));
+      setPlayerHp((hp) => Math.min(stats.maxHp, hp + heal));
+      setGuarded(true);
+      showPopup('player', `+${heal}`, 'heal');
+      setMessage('🛡️ 철벽 수호! 체력을 회복하고 다음 피해를 크게 줄여요!');
+      return;
+    }
+
+    const dmg = skillDamage(player.jobId, stats, monster.hp);
+    const nextHp = Math.max(0, monsterHp - dmg);
+    setPhase('feedback');
+    setMonsterHp(nextHp);
+    setFx('p-atk');
+    showPopup('monster', `-${dmg}`, 'crit');
+    setMessage(`${skillText(player.jobId)}! ⚔️ ${dmg} 데미지!`);
+    after(1100, () => (nextHp <= 0 ? end(true) : nextTurn()));
   }
 
   function after(ms, fn) {
@@ -178,6 +225,7 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
           result.win && score.current.total >= 4 && score.current.correct === score.current.total,
         potionsUsed: { ...used.current },
         playerHpLeft: playerHp,
+        skillGauge,
       },
       next,
     );
@@ -186,6 +234,18 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
   return (
     <div className="screen battle">
       {mode === 'tower' && <div className="tower-banner">🗼 무한의 탑 — {monster.floor}층</div>}
+
+      <div className="skill-panel card">
+        <div className="skill-row">
+          <b>{stats.job.icon} {stats.job.name}</b>
+          <span>필살기 {Math.round(skillGauge)}%</span>
+        </div>
+        <div className="skill-bar"><div style={{ width: `${skillGauge}%` }} /></div>
+        <button className="skill-btn" disabled={phase !== 'ask' || skillGauge < 100} onClick={useSkill}>
+          {skillText(player.jobId)} {skillGauge >= 100 ? '사용!' : '충전 중'}
+        </button>
+        {(focused || guarded) && <div className="skill-ready">{focused ? '🎯 다음 정답 치명타 준비' : '🛡️ 다음 피해 감소 준비'}</div>}
+      </div>
 
       {/* 전투 무대: 내 캐릭터 vs 몬스터 */}
       <div className="arena card">
@@ -222,8 +282,12 @@ export default function BattleScreen({ player, monster, onFinish, mode = 'normal
           {danger && phase === 'ask' && (
             <div className="danger-banner">⚠️ {monster.name}이(가) 힘을 모은다! 틀리면 데미지 2배!</div>
           )}
+          {specialTurn && phase === 'ask' && (
+            <div className="pattern-banner">👾 특수 패턴: {monster.pattern.name}</div>
+          )}
           <div className="question-top">
             <span className="unit-tag">{question.unit}</span>
+            {hitsWeakness && <span className="weakness-tag">🎯 약점 과목!</span>}
             <span className={`timer ${timeLeft <= 5 ? 'urgent' : ''}`}>⏰ {timeLeft}초</span>
           </div>
           <div className="question-text">{question.text}</div>

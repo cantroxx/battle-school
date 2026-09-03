@@ -1,16 +1,36 @@
-# React + Vite
+# 배틀 스쿨
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+초등학교 3~6학년 문제를 풀어 몬스터와 싸우고 장비·직업·스킬을 성장시키는 React/Vite 싱글플레이 학습 RPG입니다.
 
-Currently, two official plugins are available:
+## 게임 범위
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- 전사·마법사·궁수·수호자 4직업과 전직 조건
+- 정답으로 충전하는 직업 스킬과 사용 시점 선택
+- 몬스터별 과목 약점, 특수 패턴, 방어·집중 대응
+- 같은 가격대의 선택형 무기·방어구와 장착
+- 일반 전투, 보스, 무한의 탑, 오답 복습, 업적·도감
 
-## React Compiler
+## 실행과 검증
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+npm run dev
+npm run check
+```
 
-## Expanding the Oxlint configuration
+`npm run check`는 전투·직업·장비·저장 마이그레이션 고정 검사, Oxlint, 프로덕션 빌드를 차례로 실행합니다. 소스 기준은 `src/`이고 `dist/`는 재생성 가능한 빌드 산출물입니다.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## 배포와 저장
+
+- 운영 주소: <https://battle-school.vercel.app/>
+- 배포 방식: GitHub 저장소를 연결한 Vercel 정적 빌드로 추정되며, 다음 배포 전 저장소·브랜치 연결을 확인합니다.
+- 기준 저장소: <https://github.com/cantroxx/battle-school>
+- 저장 키: 브라우저 `localStorage`의 `battle-school-save-v1`; 기존 저장은 로딩 시 현재 구조로 보완합니다.
+- 별도 회원·학생 데이터베이스와 온라인 랭킹은 아직 사용하지 않습니다.
+
+## 문제·에셋과 알려진 제한
+
+- 문제 파일은 퀴즈 서바이버의 자체 문제 구조에서 복사한 `src/questions/`를 기준으로 하며 새 문제는 정답과 교육과정을 함께 검수합니다.
+- 로고·상표·외부 캐릭터 이미지를 사용하지 않습니다. 새 에셋에는 출처와 라이선스를 기록합니다.
+- 학생 대상 재미·난이도 플레이테스트를 마치기 전 Firebase 랭킹이나 비동기 대결을 붙이지 않습니다.
+- 배포 전 새 캐릭터, 서로 다른 2개 이상 직업 빌드, 약점·특수 패턴, 상점·장착, 무한의 탑을 실제 브라우저에서 확인합니다.

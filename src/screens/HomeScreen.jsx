@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import {
   MONSTERS, statsOf, xpToNext, POTIONS, FINAL_MONSTER_ID, STORY, todaySubjectId, titleOf,
+  JOBS, isJobUnlocked,
 } from '../game/data.js';
 import { SUBJECTS, GRADED_SUBJECTS } from '../questions/index.js';
 
 /* 마을(홈): 내 정보, 과목 선택, 모험 지도, 무한의 탑, 상점·도감·업적 입구 */
-export default function HomeScreen({ player, onChangePref, onBattle, onTower, onGoShop, onGoDex, onGoBadges, onReset }) {
+export default function HomeScreen({ player, onChangePref, onChooseJob, onBattle, onTower, onGoShop, onGoDex, onGoBadges, onReset }) {
   const stats = statsOf(player);
   const need = xpToNext(player.level);
   const accuracy =
@@ -29,7 +30,7 @@ export default function HomeScreen({ player, onChangePref, onBattle, onTower, on
           </div>
           {player.title && <div className="hero-title">🏅 {titleOf(player.title)}</div>}
           <div className="hero-stats">
-            ❤️ 체력 {stats.maxHp} · ⚔️ 공격 {stats.atk} · 🛡️ 방어 {stats.def}
+            {stats.job.icon} {stats.job.name} · ❤️ {stats.maxHp} · ⚔️ {stats.atk} · 🛡️ {stats.def}
           </div>
           <div className="xp-bar">
             <div className="xp-fill" style={{ width: `${(player.xp / need) * 100}%` }} />
@@ -54,6 +55,30 @@ export default function HomeScreen({ player, onChangePref, onBattle, onTower, on
         <button className="nav-btn" onClick={onGoDex}>📖 도감</button>
         <button className="nav-btn" onClick={onGoBadges}>🏅 업적</button>
       </div>
+
+      <section className="card">
+        <h2>✨ 직업과 필살기</h2>
+        <p className="hint">조건을 달성한 직업으로 언제든 전직할 수 있어요. 정답으로 게이지를 채워 필살기를 쓰세요!</p>
+        <div className="job-grid">
+          {JOBS.map((job) => {
+            const unlocked = isJobUnlocked(player, job.id);
+            const selectedJob = player.jobId === job.id;
+            return (
+              <button
+                key={job.id}
+                className={`job-card ${selectedJob ? 'selected' : ''}`}
+                disabled={!unlocked}
+                onClick={() => onChooseJob(job.id)}
+              >
+                <span className="job-icon">{unlocked ? job.icon : '🔒'}</span>
+                <b>{job.name}</b>
+                <span>{job.skill}</span>
+                <small>{unlocked ? job.skillDesc : job.unlock}</small>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="card">
         <h2>📖 어떤 과목으로 싸울까? <span className="today-note">⭐ = 오늘의 과목 (데미지 1.5배!)</span></h2>
@@ -138,6 +163,8 @@ export default function HomeScreen({ player, onChangePref, onBattle, onTower, on
             <p className="modal-desc">{selected.desc}</p>
             <div className="modal-stats">
               ❤️ 체력 {selected.hp} · ⚔️ 공격 {selected.atk}
+              <br />약점: {SUBJECTS[selected.weakness]?.icon} {SUBJECTS[selected.weakness]?.name}
+              <br />특수 패턴: {selected.pattern?.name}
               <br />보상: 💰 {selected.gold}G · ✨ 경험치 {selected.xp}
             </div>
             <div className="end-btns">

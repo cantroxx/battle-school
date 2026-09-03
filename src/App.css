@@ -230,6 +230,46 @@
   font-size: 13px;
 }
 
+/* ---------- 홈: 직업 ---------- */
+.job-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.job-card {
+  min-height: 128px;
+  border-radius: 16px;
+  background: #f3f0fa;
+  border: 3px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px;
+  font-size: 15px;
+}
+
+.job-card.selected {
+  border-color: #8b5cf6;
+  background: #efe9ff;
+}
+
+.job-card:disabled {
+  opacity: 0.62;
+}
+
+.job-card small {
+  color: #6b5f8a;
+  word-break: keep-all;
+}
+
+.job-icon {
+  font-size: 32px;
+}
+
 /* ---------- 홈: 과목 선택 ---------- */
 .subject-row {
   display: grid;
@@ -430,6 +470,52 @@
 }
 
 /* ---------- 전투 ---------- */
+.skill-panel {
+  padding: 12px 16px;
+}
+
+.skill-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.skill-bar {
+  height: 14px;
+  background: #e5e0f2;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.skill-bar div {
+  height: 100%;
+  background: linear-gradient(90deg, #4cc9f0, #8b5cf6, #ff6b81);
+  transition: width 0.35s;
+}
+
+.skill-btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #8b5cf6, #ff6b81);
+  color: #fff;
+  font-size: 16px;
+}
+
+.skill-btn:disabled {
+  background: #ece8f6;
+  color: #8a7fa8;
+}
+
+.skill-ready {
+  margin-top: 6px;
+  text-align: center;
+  color: #6d4fc4;
+  font-size: 14px;
+}
+
 .arena {
   display: flex;
   align-items: stretch;
@@ -605,6 +691,16 @@
   word-break: keep-all;
 }
 
+.pattern-banner {
+  background: #2d2545;
+  color: #ffeaa7;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 15px;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
 .question-top {
   display: flex;
   justify-content: space-between;
@@ -616,6 +712,14 @@
   font-size: 13px;
   background: #efe9ff;
   color: #6d4fc4;
+  border-radius: 10px;
+  padding: 3px 10px;
+}
+
+.weakness-tag {
+  font-size: 13px;
+  background: #fff4e3;
+  color: #b45f06;
   border-radius: 10px;
   padding: 3px 10px;
 }
@@ -825,6 +929,15 @@
 .buy-btn:disabled {
   background: #ece8f6;
   color: #a99fc4;
+}
+
+.equip-btn {
+  min-height: 42px;
+  border-radius: 12px;
+  background: #8b5cf6;
+  color: #fff;
+  font-size: 15px;
+  padding: 0 14px;
 }
 
 /* ---------- 도감 ---------- */

@@ -7,7 +7,7 @@ import DexScreen from './screens/DexScreen.jsx';
 import BadgeScreen from './screens/BadgeScreen.jsx';
 import {
   newPlayer, xpToNext, WEAPONS, ARMORS, POTIONS,
-  towerMonster, todaySubjectId, checkAchievements, titleOf,
+  towerMonster, todaySubjectId, checkAchievements, titleOf, isJobUnlocked,
 } from './game/data.js';
 import { loadPlayer, savePlayer, clearPlayer } from './game/storage.js';
 import { sfx, setMuted } from './game/sfx.js';
@@ -70,6 +70,7 @@ export default function App() {
     };
     p.potionSmall -= result.potionsUsed.small;
     p.potionBig -= result.potionsUsed.big;
+    p.skillGauge = result.skillGauge;
     if (result.win) {
       p.wins += 1;
       p.gold += result.gold;
@@ -120,19 +121,46 @@ export default function App() {
     }
   }
 
-  // 상점: 장비는 지금 것보다 좋은 것만 살 수 있고, 사면 바로 장착
-  function buyWeapon(id) {
-    const w = WEAPONS[id];
-    if (id <= player.weaponId || player.gold < w.price) return;
+  function chooseJob(id) {
+    if (!isJobUnlocked(player, id)) return;
+    update({ ...player, jobId: id });
     sfx.buy();
-    afterBuy({ ...player, gold: player.gold - w.price, weaponId: id });
+    showToast('✨ 새로운 직업으로 전직했어요!');
+  }
+
+  // 상점: 같은 가격대 장비도 구매 후 자유롭게 바꿔 장착한다.
+  function buyWeapon(id) {
+    const w = WEAPONS.find((item) => item.id === id);
+    if (!w) return;
+    if (player.ownedWeaponIds.includes(id)) {
+      update({ ...player, weaponId: id });
+      return;
+    }
+    if (player.gold < w.price) return;
+    sfx.buy();
+    afterBuy({
+      ...player,
+      gold: player.gold - w.price,
+      weaponId: id,
+      ownedWeaponIds: [...player.ownedWeaponIds, id],
+    });
   }
 
   function buyArmor(id) {
-    const a = ARMORS[id];
-    if (id <= player.armorId || player.gold < a.price) return;
+    const a = ARMORS.find((item) => item.id === id);
+    if (!a) return;
+    if (player.ownedArmorIds.includes(id)) {
+      update({ ...player, armorId: id });
+      return;
+    }
+    if (player.gold < a.price) return;
     sfx.buy();
-    afterBuy({ ...player, gold: player.gold - a.price, armorId: id });
+    afterBuy({
+      ...player,
+      gold: player.gold - a.price,
+      armorId: id,
+      ownedArmorIds: [...player.ownedArmorIds, id],
+    });
   }
 
   function buyPotion(kind) {
@@ -180,6 +208,7 @@ export default function App() {
         <HomeScreen
           player={player}
           onChangePref={handlePref}
+          onChooseJob={chooseJob}
           onBattle={startBattle}
           onTower={() => startTower(1, null)}
           onGoShop={() => setScreen('shop')}
